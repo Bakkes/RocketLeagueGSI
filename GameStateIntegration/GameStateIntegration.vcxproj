@@ -74,11 +74,11 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_MBCS;%(PreprocessorDefinitions);IS_PLUGIN</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:\Users\Chris\Documents\bakkesmod\BakkesMod\BakkesMod;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_MBCS;%(PreprocessorDefinitions);IS_PLUGIN;_SCL_SECURE_NO_WARNINGS</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\Users\Chris\Downloads\rapidjson-master\include;C:\Users\Chris\Downloads\boost_1_61_0\;C:\Users\Chris\Downloads\websocketpp-0.7.0\;C:\Users\Chris\Documents\bakkesmod\BakkesMod\BakkesMod;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <AdditionalLibraryDirectories>C:\Users\Chris\Documents\bakkesmod\BakkesMod\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\Users\Chris\Downloads\boost_1_61_0\stage\lib;C:\Users\Chris\Documents\bakkesmod\BakkesMod\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -95,7 +95,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>C:\Users\Chris\Documents\bakkesmod\BakkesMod\BakkesMod;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\Chris\Downloads\websocketpp-0.7.0\;C:\Users\Chris\Documents\bakkesmod\BakkesMod\BakkesMod;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_MBCS;%(PreprocessorDefinitions);IS_PLUGIN;</PreprocessorDefinitions>
     </ClCompile>
     <Link>
@@ -121,11 +121,13 @@
     <ClInclude Include="Distributor.h" />
     <ClInclude Include="GameStateIntegrationPlugin.h" />
     <ClInclude Include="Listener.h" />
+    <ClInclude Include="Models.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Distributor.cpp" />
     <ClCompile Include="GameStateIntegrationPlugin.cpp" />
     <ClCompile Include="Listener.cpp" />
+    <ClCompile Include="Models.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

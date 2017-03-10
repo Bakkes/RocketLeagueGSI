@@ -104,13 +104,31 @@ public:
 	template <typename Writer>
 	void Serialize(Writer& writer)
 	{
-		ActorData::Serialize(writer);
-		writer.BeginObject();
+		//ActorData::Serialize(writer);
+		writer.StartObject();
 		writer.String("playerindex");
 		writer.Int(playerIdx);
 		writer.String("name");
-		writer.String(playerName);
+		writer.String(playerName.c_str());
 		writer.EndObject();
+	}
+};
+template <class A_Type>
+class ArrayModel : public JsonModel 
+{
+public:
+	vector<A_Type> arr;
+
+	template <typename Writer>
+	void Serialize(Writer& writer)
+	{
+		writer.String("players");
+		writer.StartArray();
+		for (auto it = arr.begin(); it != arr.end(); it++) 
+		{
+			it->Serialize(writer);
+		}
+		writer.EndArray();
 	}
 };
 

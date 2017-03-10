@@ -5,6 +5,7 @@
 #include <iostream>
 #include <string>
 #include <mutex>
+#include "Commands.h"
 
 typedef websocketpp::server<websocketpp::config::asio> server;
 
@@ -21,7 +22,11 @@ BAKKESMOD_PLUGIN(GameStateIntegrationPlugin, "GameStateIntegration plugin", "0.1
 GameWrapper* gw;
 ConsoleWrapper* cons;
 server* ws_server;
+
+
+std::map<std::string, t_getData> availableCommands;
 vector<std::string> awaitingCommands;
+
 std::mutex mtx;
 
 void cb(ActorWrapper aw, std::string e) 
@@ -31,6 +36,25 @@ void cb(ActorWrapper aw, std::string e)
 
 std::vector<connection_ptr> conns;
 
+void checkCommands(GameWrapper* gameWrapper) 
+{
+	mtx.lock();
+	for (auto it = awaitingCommands.begin(); it != awaitingCommands.end(); it++) 
+	{
+		string wot = *it;
+		auto mapIt = availableCommands.find(wot);
+		if (mapIt != availableCommands.end()) 
+		{
+			string resultJson = mapIt->second(gameWrapper);
+			for (unsigned int i = 0; i < conns.size(); i++) {
+				conns.at(i)->send(resultJson);
+			}
+		}
+	}
+	awaitingCommands.clear();
+	mtx.unlock();
+	gw->SetTimeout(&checkCommands, 50);
+}
 
 void on_message(server* s, websocketpp::connection_hdl hdl, message_ptr msg) {
 	connection_ptr con = s->get_con_from_hdl(hdl);
@@ -90,7 +114,7 @@ void onListenAdd(std::vector<std::string> params)
 	std::string command = params.at(0);
 	if (command.compare("gsi_start") == 0)
 	{
-
+		
 	}
 	else if (command.compare("gsi_debug_car") == 0) 
 	{
@@ -103,6 +127,7 @@ void onListenAdd(std::vector<std::string> params)
 
 			CarData c;
 			c.FromWrapper(car);
+			writer.SetMaxDecimalPlaces(3);
 			writer.StartObject();
 			c.Serialize(writer);
 			writer.EndObject();
@@ -119,6 +144,9 @@ void GameStateIntegrationPlugin::onLoad()
 	cons->registerNotifier("gsi_debug_car", onListenAdd);
 	cons->registerCvar("gsi_interval", "50");
 
+	availableCommands.insert(std::pair<std::string, t_getData>("players", &getPlayers));
+	gw->SetTimeout(&checkCommands, 50);
+
 	if (ws_server == NULL)
 	{
 		ws_server = new server();
@@ -128,6 +156,7 @@ void GameStateIntegrationPlugin::onLoad()
 		ws_server->stop();
 	}
 	run_server();
+	//DONT PUT CODE HERE AS IT'LL NEVER GET EXECUTED
 }
 
 void GameStateIntegrationPlugin::onUnload()

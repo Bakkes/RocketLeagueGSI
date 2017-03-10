@@ -6,6 +6,7 @@
 #include <string>
 #include <mutex>
 #include "Commands.h"
+#include <utility>
 
 typedef websocketpp::server<websocketpp::config::asio> server;
 
@@ -23,48 +24,55 @@ GameWrapper* gw;
 ConsoleWrapper* cons;
 server* ws_server;
 
+struct ConnectionData {
+	vector<std::string> awaitingCommands;
+	std::mutex mtx;
+
+};
 
 std::map<std::string, t_getData> availableCommands;
-vector<std::string> awaitingCommands;
+std::map<connection_ptr, ConnectionData*> connections;
 
-std::mutex mtx;
 
 void cb(ActorWrapper aw, std::string e) 
 {
 	cons->log(e);
 }
 
-std::vector<connection_ptr> conns;
-
 void checkCommands(GameWrapper* gameWrapper) 
 {
-	mtx.lock();
-	for (auto it = awaitingCommands.begin(); it != awaitingCommands.end(); it++) 
+	for (auto connectionIt = connections.begin(); connectionIt != connections.end(); connectionIt++) 
 	{
-		string wot = *it;
-		auto mapIt = availableCommands.find(wot);
-		if (mapIt != availableCommands.end()) 
+		connectionIt->second->mtx.lock();
+		for (auto it = connectionIt->second->awaitingCommands.begin(); it != connectionIt->second->awaitingCommands.end(); it++)
 		{
-			string resultJson = mapIt->second(gameWrapper);
-			for (unsigned int i = 0; i < conns.size(); i++) {
-				conns.at(i)->send(resultJson);
+			auto mapIt = availableCommands.find(*it);
+			if (mapIt != availableCommands.end())
+			{
+				string resultJson = mapIt->second(gameWrapper);
+				connectionIt->first->send(resultJson);
 			}
 		}
+		connectionIt->second->awaitingCommands.clear();
+		connectionIt->second->mtx.unlock();
 	}
-	awaitingCommands.clear();
-	mtx.unlock();
 	gw->SetTimeout(&checkCommands, 50);
 }
 
+
 void on_message(server* s, websocketpp::connection_hdl hdl, message_ptr msg) {
 	connection_ptr con = s->get_con_from_hdl(hdl);
-	if (std::find(conns.begin(), conns.end(), con) == conns.end())
-		conns.push_back(con);
+	if (connections.find(con) == connections.end()) 
+	{
+		ConnectionData* conData = new ConnectionData();
+		connections.insert(std::pair<connection_ptr, ConnectionData*>(con, conData));
+	}
 	try {
 		std::string payload = msg->get_payload();
-		mtx.lock();
-		awaitingCommands.push_back(payload);
-		mtx.unlock();
+		ConnectionData* conData = connections.at(con);
+		conData->mtx.lock();
+		conData->awaitingCommands.push_back(payload);
+		conData->mtx.unlock();
 		//auto input = parseConsoleInput(msg->get_payload());
 		//
 		//string payload = msg->get_payload();
@@ -118,21 +126,6 @@ void onListenAdd(std::vector<std::string> params)
 	}
 	else if (command.compare("gsi_debug_car") == 0) 
 	{
-		auto car = gw->GetLocalCar();
-		cons->log("Sending car data to " + to_string(conns.size()) + " connections");
-		for (unsigned int i = 0; i < conns.size(); i++) {
-
-			StringBuffer buffer;
-			Writer<StringBuffer> writer(buffer);
-
-			CarData c;
-			c.FromWrapper(car);
-			writer.SetMaxDecimalPlaces(3);
-			writer.StartObject();
-			c.Serialize(writer);
-			writer.EndObject();
-			conns.at(i)->send(buffer.GetString());
-		}
 	}
 }
 

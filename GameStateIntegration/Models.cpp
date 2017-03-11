@@ -1,4 +1,5 @@
 #include "Models.h"
+#include "wrappers/priwrapper.h"
 void VectorData::FromWrapper(Vector v)
 {
 	data = v;
@@ -20,4 +21,5 @@ void CarData::FromWrapper(CarWrapper cw)
 {
 	ActorData::FromWrapper(cw);
 	boostAmount = cw.GetBoost().GetCurrentBoostAmount();
+	playerIdx = cw.GetPRI().GetPlayerID();
 }

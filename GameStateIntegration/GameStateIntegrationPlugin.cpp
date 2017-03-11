@@ -27,12 +27,12 @@ server* ws_server;
 struct ConnectionData {
 	vector<std::string> awaitingCommands;
 	std::mutex mtx;
-
+	connection_ptr con;
 };
 
-std::map<std::string, t_getData> availableCommands;
-std::map<connection_ptr, ConnectionData*> connections;
-
+std::map<std::string, t_getData>* availableCommands;
+std::map<connection_ptr, ConnectionData*>* connections;
+std::map<std::string, vector<connection_ptr>*>* subscriptions;
 
 void cb(ActorWrapper aw, std::string e) 
 {
@@ -41,20 +41,38 @@ void cb(ActorWrapper aw, std::string e)
 
 void checkCommands(GameWrapper* gameWrapper) 
 {
-	for (auto connectionIt = connections.begin(); connectionIt != connections.end(); connectionIt++) 
+	for (auto connectionIt = connections->begin(); connectionIt != connections->end(); connectionIt++) 
 	{
 		connectionIt->second->mtx.lock();
 		for (auto it = connectionIt->second->awaitingCommands.begin(); it != connectionIt->second->awaitingCommands.end(); it++)
 		{
-			auto mapIt = availableCommands.find(*it);
-			if (mapIt != availableCommands.end())
+			auto mapIt = availableCommands->find(*it);
+			if (mapIt != availableCommands->end())
 			{
 				string resultJson = mapIt->second(gameWrapper);
-				connectionIt->first->send(resultJson);
+				if (!resultJson.empty()) 
+				{
+					connectionIt->first->send(resultJson);
+				}
 			}
 		}
 		connectionIt->second->awaitingCommands.clear();
 		connectionIt->second->mtx.unlock();
+	}
+
+	for (auto subscriptionIt = subscriptions->begin(); subscriptionIt != subscriptions->end(); subscriptionIt++)
+	{
+		if (subscriptionIt->first.size() == 0)
+			continue;
+		auto mapIt = availableCommands->find(subscriptionIt->first);
+		if (mapIt != availableCommands->end())
+		{
+			string resultJson = mapIt->second(gameWrapper);
+			for (auto subscriberIt = subscriptionIt->second->begin(); subscriberIt != subscriptionIt->second->end(); subscriberIt++) {
+				(*subscriberIt)->send(resultJson);
+			}
+			
+		}
 	}
 	gw->SetTimeout(&checkCommands, 50);
 }
@@ -62,17 +80,36 @@ void checkCommands(GameWrapper* gameWrapper)
 
 void on_message(server* s, websocketpp::connection_hdl hdl, message_ptr msg) {
 	connection_ptr con = s->get_con_from_hdl(hdl);
-	if (connections.find(con) == connections.end()) 
+	if (connections->find(con) == connections->end()) 
 	{
 		ConnectionData* conData = new ConnectionData();
-		connections.insert(std::pair<connection_ptr, ConnectionData*>(con, conData));
+		conData->con = con;
+		connections->insert(std::pair<connection_ptr, ConnectionData*>(con, conData));
 	}
 	try {
 		std::string payload = msg->get_payload();
-		ConnectionData* conData = connections.at(con);
-		conData->mtx.lock();
-		conData->awaitingCommands.push_back(payload);
-		conData->mtx.unlock();
+		ConnectionData* conData = connections->at(con);
+		if (payload.find("subscribe ") == 0) {
+			string subscribeTo = payload.substr(10);
+			if (subscriptions->find(subscribeTo) == subscriptions->end()) 
+			{
+				subscriptions->insert(std::pair<std::string, vector<connection_ptr>*>(subscribeTo, new vector<connection_ptr>()));
+			}
+			subscriptions->at(subscribeTo)->push_back(conData->con);
+		} else if (payload.find("unsubscribe ") == 0) {
+			string unsubscribeTo = payload.substr(12);
+			vector<connection_ptr>* subscribz = subscriptions->at(unsubscribeTo);
+			auto item = std::find(subscribz->begin(), subscribz->end(), conData->con);
+			if (item != subscribz->end())
+			{
+				subscriptions->at(unsubscribeTo)->erase(item);
+			}
+		}
+		else {
+			conData->mtx.lock();
+			conData->awaitingCommands.push_back(payload);
+			conData->mtx.unlock();
+		}
 		//auto input = parseConsoleInput(msg->get_payload());
 		//
 		//string payload = msg->get_payload();
@@ -129,6 +166,8 @@ void onListenAdd(std::vector<std::string> params)
 	}
 }
 
+
+
 void GameStateIntegrationPlugin::onLoad()
 {
 	gw = gameWrapper;
@@ -137,7 +176,12 @@ void GameStateIntegrationPlugin::onLoad()
 	cons->registerNotifier("gsi_debug_car", onListenAdd);
 	cons->registerCvar("gsi_interval", "50");
 
-	availableCommands.insert(std::pair<std::string, t_getData>("players", &getPlayers));
+	availableCommands = new std::map<std::string, t_getData>();
+	connections = new std::map<connection_ptr, ConnectionData*>();
+	subscriptions = new std::map<std::string, vector<connection_ptr>*>();
+
+	availableCommands->insert(std::pair<std::string, t_getData>("players", &getPlayers));
+	availableCommands->insert(std::pair<std::string, t_getData>("cardata", &getCarData));
 	gw->SetTimeout(&checkCommands, 50);
 
 	if (ws_server == NULL)
@@ -154,6 +198,9 @@ void GameStateIntegrationPlugin::onLoad()
 
 void GameStateIntegrationPlugin::onUnload()
 {
+	delete availableCommands;
+	delete connections;
+	delete subscriptions;
 	if (ws_server != NULL) 
 	{
 		ws_server->stop();

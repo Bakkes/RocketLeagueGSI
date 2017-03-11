@@ -83,14 +83,19 @@ public:
 
 class CarData : public ActorData {
 public:
-	float boostAmount;
+	float boostAmount = 0.0f;
+	int playerIdx = 0;
 
 	template <typename Writer>
 	void Serialize(Writer& writer)
 	{
+		writer.StartObject();
+		writer.String("playerindex");
+		writer.Int(playerIdx);
 		ActorData::Serialize(writer);
 		writer.String("boostamount");
 		writer.Double(boostAmount);
+		writer.EndObject();
 	}
 
 	void FromWrapper(CarWrapper cw);
@@ -98,8 +103,12 @@ public:
 
 class PlayerData : public JsonModel {
 public:
-	int playerIdx;
-	string playerName;
+	int playerIdx = 0;
+	string playerName = "null";
+	int teamNum = 0;
+	int goals = 0;
+	int saves = 0;
+	int assists = 0;
 
 	template <typename Writer>
 	void Serialize(Writer& writer)
@@ -110,6 +119,14 @@ public:
 		writer.Int(playerIdx);
 		writer.String("name");
 		writer.String(playerName.c_str());
+		writer.String("team");
+		writer.Int(teamNum);
+		writer.String("goals");
+		writer.Int(goals);
+		writer.String("saves");
+		writer.Int(saves);
+		writer.String("assists");
+		writer.Int(assists);
 		writer.EndObject();
 	}
 };
@@ -122,7 +139,6 @@ public:
 	template <typename Writer>
 	void Serialize(Writer& writer)
 	{
-		writer.String("players");
 		writer.StartArray();
 		for (auto it = arr.begin(); it != arr.end(); it++) 
 		{

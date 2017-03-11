@@ -5,6 +5,9 @@
 using namespace std;
 typedef string(*t_getData)(GameWrapper* gw);
 
+string getPlayers(GameWrapper* gw);
+string getCarData(GameWrapper* gw);
+
 template<typename mod>
 string toJson(mod jsm, string key = "") {
 	StringBuffer buffer;
@@ -12,8 +15,8 @@ string toJson(mod jsm, string key = "") {
 
 	writer.SetMaxDecimalPlaces(3);
 	writer.StartObject();
-	/*if (!key.empty())
-	writer.String(key.c_str());*/
+	if (!key.empty())
+		writer.String(key.c_str());
 	jsm.Serialize(writer);
 	writer.EndObject();
 	return buffer.GetString();
@@ -27,15 +30,21 @@ string toJson(vector<mod> jsms, string key = "")
 
 	writer.SetMaxDecimalPlaces(3);
 	writer.StartObject();
-	if (!key.empty())
+	if (!key.empty()) 
+	{
 		writer.String(key.c_str());
+		writer.StartObject();
+	}
 	writer.StartArray();
 	for (unsigned int i = 0; i < jsms.size(); i++)
 	{
 		jsms.at(i).Serialize(writer);
 	}
 	writer.EndArray();
+	if (!key.empty())
+	{
+		writer.EndObject();
+	}
 	writer.EndObject();
 	return buffer.GetString();
 }
-string getPlayers(GameWrapper* gw);

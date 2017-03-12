@@ -130,6 +130,78 @@ public:
 		writer.EndObject();
 	}
 };
+
+class BaseProperty : public JsonModel {
+public:
+	string propertyName = "";
+
+	template <typename Writer>
+	void Serialize(Writer& writer)
+	{
+		//ActorData::Serialize(writer);
+		writer.String(propertyName.c_str());
+	}
+};
+
+class IntProperty : public BaseProperty {
+public:
+	int value = 0;
+
+	template <typename Writer>
+	void Serialize(Writer& writer)
+	{
+		BaseProperty::Serialize(writer);
+		writer.Int(value);
+	}
+};
+
+class StringProperty : public BaseProperty {
+public:
+	string value = 0;
+
+	template <typename Writer>
+	void Serialize(Writer& writer)
+	{
+		BaseProperty::Serialize(writer);
+		writer.String(value);
+	}
+};
+
+class DoubleProperty : public BaseProperty {
+public:
+	float value = 0;
+
+	template <typename Writer>
+	void Serialize(Writer& writer)
+	{
+		BaseProperty::Serialize(writer);
+		writer.Double(value);
+	}
+};
+
+class EventModel : public JsonModel {
+public:
+	string eventName = "";
+	std::vector<BaseProperty> props;
+
+	template <typename Writer>
+	void Serialize(Writer& writer)
+	{
+		//ActorData::Serialize(writer);
+		writer.String("event");
+		writer.StartObject();
+		writer.String("name");
+		writer.String(eventName.c_str());
+		writer.String("params");
+		writer.StartObject();
+		for (auto it = props.begin(); it != props.end(); it++) {
+			it->Serialize(writer);
+		}
+		writer.EndObject();
+		writer.EndObject();
+	}
+};
+
 template <class A_Type>
 class ArrayModel : public JsonModel 
 {

@@ -30,17 +30,77 @@ struct ConnectionData {
 	connection_ptr con;
 };
 
+std::uintptr_t lastGame = NULL;
+bool hooked = false;
+bool active = false;
 std::map<std::string, t_getData>* availableCommands;
 std::map<connection_ptr, ConnectionData*>* connections;
 std::map<std::string, vector<connection_ptr>*>* subscriptions;
-
-void cb(ActorWrapper aw, std::string e) 
+//Goalhit_priGoalHit
+void HandleReplicatedEvent(string name)
 {
-	cons->log(e);
+	ServerWrapper game = gw->GetGameEventAsServer2();
+	EventModel model;
+	model.eventName = name;
+	if (name.compare("ReplicatedScoredOnTeam") == 0) 
+	{
+		IntProperty scoredOn;
+		scoredOn.propertyName = "scored_on";
+		scoredOn.value = game.GetScoredOnTeam();
+		model.props.push_back(scoredOn);
+	}
+	cout << toJson(model) << endl;
+	cout.flush();
+}
+
+void cb(ActorWrapper aw, std::string e, void* params)
+{
+	if (e.find("Destroy") != std::string::npos) {
+		cons->log(e);
+		cout << e << endl;
+		cout.flush();
+		active = false;
+	}
+	else if (e.find("GameEvent_Soccar_TA.Active.EndState") != std::string::npos) {
+		cons->log(e);
+		active = false;
+	}
+	else if (e.find("GameEvent_Soccar_TA.Countdown.BeginState") != std::string::npos) {
+		cons->log(e);
+		active = true;
+	}
+	else if (e.find("TAGame.GameEvent_Soccar_TA.ReplicatedEvent") != std::string::npos) {
+		int idx = *(int*)params;
+		string name = gw->GetFNameByIndex(idx);
+		HandleReplicatedEvent(name);
+	}
+	else if (e.find(".Tick") == std::string::npos && e.find(".UpdateTotalGameTimePlayed") == std::string::npos) {
+		cout << e << endl;
+		cout.flush();
+		cons->log(e);
+	}
 }
 
 void checkCommands(GameWrapper* gameWrapper) 
 {
+	if (!active) 
+	{
+
+		ServerWrapper game = gw->GetGameEventAsServer2();
+		if (lastGame != game.memory_address && !game.IsNull())
+		{
+			cout << "HOOKED NEW GAME EVENT" << endl;
+			cout.flush();
+			active = true;
+			lastGame = game.memory_address;
+			game.ListenForEvents(cb, HookMode_Post);
+		}
+		else 
+		{
+			gw->SetTimeout(&checkCommands, 200);
+			return;
+		}
+	}
 	for (auto connectionIt = connections->begin(); connectionIt != connections->end(); connectionIt++) 
 	{
 		connectionIt->second->mtx.lock();
@@ -139,6 +199,8 @@ void run_server() {
 
 		// Listen on port
 		ws_server->listen(8765);
+
+		ws_server->get_alog().set_channels(websocketpp::log::alevel::none);
 
 		// Start the server accept loop
 		ws_server->start_accept();

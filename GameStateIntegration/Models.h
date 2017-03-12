@@ -9,16 +9,14 @@ using namespace rapidjson;
 
 class JsonModel {
 public:
-	template <typename Writer>
-	void Serialize(Writer& writer) {};
+	void Serialize(Writer<StringBuffer>& writer) {};
 };
 
 class VectorData : public JsonModel {
 public:
 	Vector data;
-
-	template <typename Writer>
-	void Serialize(Writer& writer)
+	
+	void Serialize(Writer<StringBuffer>& writer)
 	{
 		writer.StartObject();
 		writer.String("x");
@@ -37,8 +35,7 @@ class RotatorData : public JsonModel {
 public:
 	Rotator data;
 
-	template <typename Writer>
-	void Serialize(Writer& writer)
+	void Serialize(Writer<StringBuffer>& writer)
 	{
 		writer.StartObject();
 		writer.String("pitch");
@@ -59,9 +56,8 @@ public:
 	VectorData location;
 	VectorData velocity;
 	RotatorData rotation;
-
-	template <typename Writer>
-	void Serialize(Writer& writer) 
+	
+	void Serialize(Writer<StringBuffer>& writer) 
 	{
 		writer.String("actordata");
 		writer.StartObject();
@@ -85,9 +81,8 @@ class CarData : public ActorData {
 public:
 	float boostAmount = 0.0f;
 	int playerIdx = 0;
-
-	template <typename Writer>
-	void Serialize(Writer& writer)
+	
+	void Serialize(Writer<StringBuffer>& writer)
 	{
 		writer.StartObject();
 		writer.String("playerindex");
@@ -109,9 +104,8 @@ public:
 	int goals = 0;
 	int saves = 0;
 	int assists = 0;
-
-	template <typename Writer>
-	void Serialize(Writer& writer)
+	
+	void Serialize(Writer<StringBuffer>& writer)
 	{
 		//ActorData::Serialize(writer);
 		writer.StartObject();
@@ -135,8 +129,7 @@ class BaseProperty : public JsonModel {
 public:
 	string propertyName = "";
 
-	template <typename Writer>
-	void Serialize(Writer& writer)
+	virtual void Serialize(Writer<StringBuffer>& writer)
 	{
 		//ActorData::Serialize(writer);
 		writer.String(propertyName.c_str());
@@ -146,9 +139,8 @@ public:
 class IntProperty : public BaseProperty {
 public:
 	int value = 0;
-
-	template <typename Writer>
-	void Serialize(Writer& writer)
+	
+	virtual void Serialize(Writer<StringBuffer>& writer) override
 	{
 		BaseProperty::Serialize(writer);
 		writer.Int(value);
@@ -159,20 +151,18 @@ class StringProperty : public BaseProperty {
 public:
 	string value = 0;
 
-	template <typename Writer>
-	void Serialize(Writer& writer)
+	virtual void Serialize(Writer<StringBuffer>& writer) override
 	{
 		BaseProperty::Serialize(writer);
-		writer.String(value);
+		writer.String(value.c_str());
 	}
 };
 
 class DoubleProperty : public BaseProperty {
 public:
 	float value = 0;
-
-	template <typename Writer>
-	void Serialize(Writer& writer)
+	
+	virtual void Serialize(Writer<StringBuffer>& writer) override
 	{
 		BaseProperty::Serialize(writer);
 		writer.Double(value);
@@ -182,10 +172,10 @@ public:
 class EventModel : public JsonModel {
 public:
 	string eventName = "";
-	std::vector<BaseProperty> props;
-
-	template <typename Writer>
-	void Serialize(Writer& writer)
+	std::vector<IntProperty> intprops;
+	std::vector<StringProperty> stringprops;
+	std::vector<DoubleProperty> doubleprops;
+	void Serialize(Writer<StringBuffer>& writer)
 	{
 		//ActorData::Serialize(writer);
 		writer.String("event");
@@ -194,7 +184,13 @@ public:
 		writer.String(eventName.c_str());
 		writer.String("params");
 		writer.StartObject();
-		for (auto it = props.begin(); it != props.end(); it++) {
+		for (auto it = intprops.begin(); it != intprops.end(); it++) { //find something nice for this later pls, poly is broken since the vector doesnt use pointers
+			it->Serialize(writer);
+		}
+		for (auto it = stringprops.begin(); it != stringprops.end(); it++) {
+			it->Serialize(writer);
+		}
+		for (auto it = doubleprops.begin(); it != doubleprops.end(); it++) {
 			it->Serialize(writer);
 		}
 		writer.EndObject();
@@ -208,8 +204,7 @@ class ArrayModel : public JsonModel
 public:
 	vector<A_Type> arr;
 
-	template <typename Writer>
-	void Serialize(Writer& writer)
+	void Serialize(Writer<StringBuffer>& writer)
 	{
 		writer.StartArray();
 		for (auto it = arr.begin(); it != arr.end(); it++) 

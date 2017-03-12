@@ -39,6 +39,8 @@ std::map<std::string, vector<connection_ptr>*>* subscriptions;
 //Goalhit_priGoalHit
 void HandleReplicatedEvent(string name)
 {
+	if (!active)
+		return;
 	ServerWrapper game = gw->GetGameEventAsServer2();
 	EventModel model;
 	model.eventName = name;
@@ -47,9 +49,18 @@ void HandleReplicatedEvent(string name)
 		IntProperty scoredOn;
 		scoredOn.propertyName = "scored_on";
 		scoredOn.value = game.GetScoredOnTeam();
-		model.props.push_back(scoredOn);
+		model.intprops.push_back(scoredOn);
 	}
-	cout << toJson(model) << endl;
+
+	string resultJson = toJson(model);
+	auto eventIt = subscriptions->find("events");
+	if (eventIt != subscriptions->end()) {
+		for (auto subscriberIt = eventIt->second->begin(); subscriberIt != eventIt->second->end(); subscriberIt++) {
+			(*subscriberIt)->send(resultJson);
+		}
+	}
+
+	cout << resultJson << endl;
 	cout.flush();
 }
 
@@ -85,7 +96,6 @@ void checkCommands(GameWrapper* gameWrapper)
 {
 	if (!active) 
 	{
-
 		ServerWrapper game = gw->GetGameEventAsServer2();
 		if (lastGame != game.memory_address && !game.IsNull())
 		{

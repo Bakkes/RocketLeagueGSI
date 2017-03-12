@@ -119,16 +119,12 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Commands.h" />
-    <ClInclude Include="Distributor.h" />
     <ClInclude Include="GameStateIntegrationPlugin.h" />
-    <ClInclude Include="Listener.h" />
     <ClInclude Include="Models.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Commands.cpp" />
-    <ClCompile Include="Distributor.cpp" />
     <ClCompile Include="GameStateIntegrationPlugin.cpp" />
-    <ClCompile Include="Listener.cpp" />
     <ClCompile Include="Models.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -18,12 +18,6 @@
     <ClInclude Include="GameStateIntegrationPlugin.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Distributor.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Listener.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Models.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -33,12 +27,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="GameStateIntegrationPlugin.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Distributor.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Listener.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Models.cpp">
